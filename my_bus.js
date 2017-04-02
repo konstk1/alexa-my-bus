@@ -1,6 +1,39 @@
 'use strict';
 
-console.log("Testing");
+var http = require('http');
+
+let api_key = 'wX9NwuHnZU2ToO7GmGR9uw&stop=2153';
+let predictionsByStopPath = '/developer/api/v2/predictionsbystop'
+
+console.log("My Bus...");
+// nextBus();
+
+function nextBus() {
+    // http://realtime.mbta.com/developer/api/v2/predictionsbystop?api_key=wX9NwuHnZU2ToO7GmGR9uw&stop=2153&format=json
+    getJson(predictionsByStopPath + '?api_key=' + api_key + '&format=json', (json) => {
+        console.log(json.mode[0].route[0].direction[0].trip[0])
+    });
+}
+
+function getJson(path, callback) {
+    var options = {
+        host: 'realtime.mbta.com',
+        path: path,
+    };
+
+    http.request(options, (response) => {
+        // Continuously update stream with data
+        var body = '';
+        response.on('data', function(d) {
+            body += d;
+        });
+        response.on('end', function() {
+            // Data reception is done, do whatever with it!
+            var parsed = JSON.parse(body);
+            callback(parsed);
+        });
+    }).end();
+}
 
 // --------------- Helpers that build all of the responses -----------------------
 
@@ -40,7 +73,7 @@ function getWelcomeResponse(callback) {
     // If we wanted to initialize the session to have some attributes we could add those here.
     const sessionAttributes = {};
     const cardTitle = 'Welcome';
-    const speechOutput = 'Welcome to My Bus.';
+    const speechOutput = 'Next bus or time for schedule?';
     // If the user either does not reply to the welcome message or says something that is not
     // understood, they will be prompted again with this text.
     const repromptText = 'Say next bus or time for schedule';
@@ -65,11 +98,12 @@ function getNextBus(intent, session, callback) {
     let shouldEndSession = true;
     let speechOutput = 'Next bus is in x minutes.';
 
-    // Setting repromptText to null signifies that we do not want to reprompt the user.
-    // If the user does not respond or says something that is not understood, the session
-    // will end.
-    callback(sessionAttributes,
-         buildSpeechletResponse(intent.name, speechOutput, repromptText, shouldEndSession));
+    getJson(predictionsByStopPath + '?api_key=' + api_key + '&format=json', (json) => {
+        var secs = json.mode[0].route[0].direction[0].trip[0].pre_away;
+        var mins = Math.floor(secs / 60);
+        speechOutput = 'Next bus is in ' + mins + ' minutes.';
+        callback(sessionAttributes, buildSpeechletResponse(intent.name, speechOutput, repromptText, shouldEndSession));
+    });
 }
 
 
@@ -104,7 +138,7 @@ function onIntent(intentRequest, session, callback) {
     // Dispatch to your skill's intent handlers
     if (intentName === 'MyBusIsIntent') {
         getNextBus(intent, session, callback);
-    } else if (intentName === 'NextBusIntent') {
+    } else if (intentName === 'GetNextBusIntent') {
         getNextBus(intent, session, callback);
     } else if (intentName === 'AMAZON.HelpIntent') {
         getWelcomeResponse(callback);
