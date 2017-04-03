@@ -6,13 +6,16 @@ let api_key = 'wX9NwuHnZU2ToO7GmGR9uw&stop=2153';
 let predictionsByStopPath = '/developer/api/v2/predictionsbystop'
 
 console.log("My Bus...");
-// nextBus();
+testBus();
 
-function nextBus() {
-    // http://realtime.mbta.com/developer/api/v2/predictionsbystop?api_key=wX9NwuHnZU2ToO7GmGR9uw&stop=2153&format=json
-    getJson(predictionsByStopPath + '?api_key=' + api_key + '&format=json', (json) => {
-        console.log(json.mode[0].route[0].direction[0].trip[0])
-    });
+function testBus() {
+    var intent = {name: 'Test Bus'};
+
+    var callback = function(attributes, response) {
+        console.log(response.outputSpeech.text);
+    }
+
+    getNextBus(intent, null, callback);
 }
 
 function getJson(path, callback) {
@@ -45,8 +48,8 @@ function buildSpeechletResponse(title, output, repromptText, shouldEndSession) {
         },
         card: {
             type: 'Simple',
-            title: `SessionSpeechlet - ${title}`,
-            content: `SessionSpeechlet - ${output}`,
+            title: `My Bus - ${title}`,
+            content: `My Bus - ${output}`,
         },
         reprompt: {
             outputSpeech: {
