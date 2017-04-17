@@ -24,6 +24,8 @@ function getJson(path, callback) {
         path: path,
     };
 
+    console.log("URL: " + options.host + options.path);
+
     http.request(options, (response) => {
         // Continuously update stream with data
         var body = '';
@@ -102,9 +104,52 @@ function getNextBus(intent, session, callback) {
     let speechOutput = 'Next bus is in x minutes.';
 
     getJson(predictionsByStopPath + '?api_key=' + api_key + '&format=json', (json) => {
-        var secs = json.mode[0].route[0].direction[0].trip[0].pre_away;
-        var mins = Math.floor(secs / 60);
-        speechOutput = 'Next bus is in ' + mins + ' minutes.';
+        let predictions = new Array();
+
+        json.mode[0].route.forEach(route => {
+            route.direction[0].trip.forEach(trip => {
+                predictions.push({
+                    trip_id: trip.trip_id,
+                    bus_id: route.route_id,
+                    pre_away: trip.pre_away
+                });
+            });
+        });
+
+        predictions.sort( (a, b) => {
+            return a.pre_away - b.pre_away;
+        });
+
+        console.log(predictions);
+
+        if (predictions.length === 0) {
+            speechOutput = "There is no bus in the near future.";
+        } else {
+            predictions.forEach( (pred, idx) => {
+                var secs = pred.pre_away;
+                var mins = Math.floor(secs / 60);
+
+                if (idx === 0) {
+                    speechOutput = "The next bus is in " + mins + " minutes. ";
+                    if (predictions.length > 1) {
+                        speechOutput += "Another bus in ";
+                    }   
+                } else if (idx == (predictions.length - 1) && idx > 1) {
+                    speechOutput += "and " + mins + " minutes. ";
+                } else {
+                    speechOutput += mins + " minutes, ";
+                }
+            });
+        }
+
+        let numAlerts = json.alert_headers.length;
+        json.alert_headers.forEach ( (alert, idx) => {
+          console.log("Alert " + idx);
+          if (idx === 0) {
+            speechOutput += "There " + (numAlerts > 1 ? "are " : "is ") + numAlerts + " service alert" + (numAlerts > 1 ? "s. " : ". ");
+            }
+            speechOutput += alert.header_text + " ";
+        });
         callback(sessionAttributes, buildSpeechletResponse(intent.name, speechOutput, repromptText, shouldEndSession));
     });
 }
