@@ -1,9 +1,11 @@
 'use strict';
 
-var http = require('http');
+const https = require('https');
 
-let api_key = 'wX9NwuHnZU2ToO7GmGR9uw&stop=2153';
-let predictionsByStopPath = '/developer/api/v2/predictionsbystop'
+const stopId = 12649;
+const route = 87;
+const mbtaHost = 'api-v3.mbta.com';
+const predictionsByStopPath = `/predictions?filter[stop]=${stopId}&filter[route]=${route}&sort=arrival_time&include=vehicle`
 
 console.log("My Bus...");
 testBus();
@@ -18,26 +20,31 @@ function testBus() {
     getNextBus(intent, null, callback);
 }
 
-function getJson(path, callback) {
+async function getJson(host, path) {
     var options = {
-        host: 'realtime.mbta.com',
-        path: path,
+        host,
+        path,
     };
 
     console.log("URL: " + options.host + options.path);
 
-    http.request(options, (response) => {
-        // Continuously update stream with data
-        var body = '';
-        response.on('data', function(d) {
-            body += d;
+    return new Promise((resolve, reject) => {
+        const req = https.request(options, (response) => {
+            // Continuously update stream with data
+            var body = '';
+            response.on('data', function (d) {
+                body += d;
+            });
+            response.on('end', function () {
+                // Data reception is done, do whatever with it!
+                var parsed = JSON.parse(body);
+                resolve(parsed);
+            });
         });
-        response.on('end', function() {
-            // Data reception is done, do whatever with it!
-            var parsed = JSON.parse(body);
-            callback(parsed);
-        });
-    }).end();
+
+        req.on('error', reject);
+        req.end();
+    });
 }
 
 // --------------- Helpers that build all of the responses -----------------------
@@ -97,61 +104,63 @@ function handleSessionEndRequest(callback) {
     callback({}, buildSpeechletResponse(cardTitle, speechOutput, null, shouldEndSession));
 }
 
-function getNextBus(intent, session, callback) {
+async function getNextBus(intent, session, callback) {
     const repromptText = null;
     const sessionAttributes = {};
     let shouldEndSession = true;
     let speechOutput = 'Next bus is in x minutes.';
 
-    getJson(predictionsByStopPath + '?api_key=' + api_key + '&format=json', (json) => {
-        let predictions = new Array();
+    const json = await getJson(mbtaHost, predictionsByStopPath);
 
-        json.mode[0].route.forEach(route => {
-            route.direction[0].trip.forEach(trip => {
-                predictions.push({
-                    trip_id: trip.trip_id,
-                    bus_id: route.route_id,
-                    pre_away: trip.pre_away
-                });
-            });
+    let predictions = new Array();
+
+    // console.log('json :', json);
+
+    json.data.forEach(prediction => {
+        const arrivalTime = new Date(prediction.attributes.arrival_time);
+
+        predictions.push({
+            tripId: prediction.relationships.trip.data.id,
+            routeId: prediction.relationships.route.data.id,
+            arrivalTime,
+            secUntilArrival: (arrivalTime - new Date()) / 1000,
         });
-
-        predictions.sort( (a, b) => {
-            return a.pre_away - b.pre_away;
-        });
-
-        console.log(predictions);
-
-        if (predictions.length === 0) {
-            speechOutput = "There is no bus in the near future.";
-        } else {
-            predictions.forEach( (pred, idx) => {
-                var secs = pred.pre_away;
-                var mins = Math.floor(secs / 60);
-
-                if (idx === 0) {
-                    speechOutput = "The next bus is in " + mins + " minutes. ";
-                    if (predictions.length > 1) {
-                        speechOutput += "Another bus in ";
-                    }   
-                } else if (idx == (predictions.length - 1) && idx > 1) {
-                    speechOutput += "and " + mins + " minutes. ";
-                } else {
-                    speechOutput += mins + " minutes, ";
-                }
-            });
-        }
-
-        let numAlerts = json.alert_headers.length;
-        json.alert_headers.forEach ( (alert, idx) => {
-          console.log("Alert " + idx);
-          if (idx === 0) {
-            speechOutput += "There " + (numAlerts > 1 ? "are " : "is ") + numAlerts + " service alert" + (numAlerts > 1 ? "s. " : ". ");
-            }
-            speechOutput += alert.header_text + " ";
-        });
-        callback(sessionAttributes, buildSpeechletResponse(intent.name, speechOutput, repromptText, shouldEndSession));
     });
+
+    predictions.sort((a, b) => {
+        return a.secUntilArrival - b.secUntilArrival;
+    });
+
+    console.log(predictions);
+
+    if (predictions.length === 0) {
+        speechOutput = "There is no bus in the near future.";
+    } else {
+        predictions.forEach((pred, idx) => {
+            const mins = Math.floor(pred.secUntilArrival / 60);
+
+            if (idx === 0) {
+                speechOutput = "The next bus is in " + mins + " minutes. ";
+                if (predictions.length > 1) {
+                    speechOutput += "Another bus in ";
+                }
+            } else if (idx == (predictions.length - 1) && idx > 1) {
+                speechOutput += "and " + mins + " minutes. ";
+            } else {
+                speechOutput += mins + " minutes, ";
+            }
+        });
+    }
+
+    // let numAlerts = json.alert_headers.length;
+    // json.alert_headers.forEach((alert, idx) => {
+    //     console.log("Alert " + idx);
+    //     if (idx === 0) {
+    //         speechOutput += "There " + (numAlerts > 1 ? "are " : "is ") + numAlerts + " service alert" + (numAlerts > 1 ? "s. " : ". ");
+    //     }
+    //     speechOutput += alert.header_text + " ";
+    // });
+    callback(sessionAttributes, buildSpeechletResponse(intent.name, speechOutput, repromptText, shouldEndSession));
 }
 
 
