@@ -238,7 +238,12 @@ exports.handler = (event, context, callback) => {
             onSessionStarted({ requestId: event.request.requestId }, event.session);
         }
 
-        if (event.request.type === 'LaunchRequest') {
+        console.log('Request type: ', event.request.type);
+
+        if (event.request_type === 'CanFulfillIntentRequest') {
+            console.log(event.request);
+            callback(null, buildResponse({}, { canFulfill: 'YES' }));
+        } else if (event.request.type === 'LaunchRequest') {
             onLaunch(event.request,
                 event.session,
                 (sessionAttributes, speechletResponse) => {
