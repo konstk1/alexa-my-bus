@@ -1,3 +1,4 @@
-# Sublime Workspace
+node_modules
+test_output
 *.sublime-workspace
 .DS_Store

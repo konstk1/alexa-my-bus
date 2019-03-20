@@ -1,0 +1,14 @@
+---
+configuration: # Here you define your locales and mocks
+    locale: en-US
+
+--- # Three dashes start a new YAML document
+- test: Launch request, no further interaction. # A description of this test sequence
+- LaunchRequest: # LaunchRequest is not an utterance but a request type
+    - response.outputSpeech.ssml: Welcome to My Bus, ask for next bus
+
+---
+- test: GetNextBusIntent direct call
+- GetNextBusIntent:
+  - response.outputSpeech.ssml: The next bus is in *
+

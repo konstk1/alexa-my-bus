@@ -1,0 +1,41 @@
+{
+    "session":{
+      "new": true,
+      "sessionId":"SessionId.asdfsd",
+      "application":{
+        "applicationId":"amzn1.ask.skill.510aa3be-67b9-41c2-a069-c5d15d331154"
+      }
+    },
+    "request":{
+      "type":"CanFulfillIntentRequest",
+      "requestId":"EdwRequestId.test",
+      "intent":{
+        "name":"MyNameIsIntent",
+        "slots":{
+          "name":{
+            "name":"name",
+            "value":"Jeff"
+          }
+        }
+      },
+      "locale":"en-US",
+      "timestamp":"2017-10-03T22:02:29Z"
+    },
+    "context":{
+      "AudioPlayer":{
+        "playerActivity":"IDLE"
+      },
+      "System":{
+        "application":{
+          "applicationId":"amzn1.ask.skill.510aa3be-67b9-41c2-a069-c5d15d331154"
+        },
+        "device":{
+          "supportedInterfaces":{
+  
+          }
+        }
+      }
+    },
+    "version":"1.0"
+  }
+  
