@@ -1,0 +1,28 @@
+{
+  "manifest": {
+    "manifestVersion": "1.0",
+    "permissions": [],
+    "publishingInformation": {
+      "locales": {
+        "en-US": {
+          "name": "My Bus"
+        }
+      },
+      "isAvailableWorldwide": true,
+      "distributionCountries": []
+    },
+    "apis": {
+      "custom": {
+        "endpoint": {
+          "uri": "myBus",
+          "sourceDir": "lambda/custom"
+        },
+        "interfaces": [
+          {
+            "type": "CAN_FULFILL_INTENT_REQUEST"
+          }
+        ]
+      }
+    }
+  }
+}

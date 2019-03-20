@@ -239,8 +239,8 @@ exports.handler = (event, context, callback) => {
         }
 
         console.log('Request type: ', event.request.type);
-
-        if (event.request_type === 'CanFulfillIntentRequest') {
+        
+        if (event.request.type === 'CanFulfillIntentRequest') {
             console.log(event.request);
             callback(null, buildResponse({}, { canFulfill: 'YES' }));
         } else if (event.request.type === 'LaunchRequest') {
